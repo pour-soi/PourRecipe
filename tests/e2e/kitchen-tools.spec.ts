@@ -1,0 +1,53 @@
+import {expect,test} from "@playwright/test";
+
+test("kitchen tools convert, preserve recipe text, and work offline",async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  await page.goto("/#/tools");
+  await expect(page.getByRole("heading",{name:"PourRecipe",level:1})).toBeVisible();
+  await expect(page.locator(".page-context")).toHaveText("厨房工具");
+  await expect(page.getByText("356 °F",{exact:true})).toBeVisible();
+  await page.getByLabel("数值").fill("not-a-number");
+  await expect(page.getByText("请输入有效数字",{exact:true})).toBeVisible();
+  await page.getByLabel("数值").fill("-40");
+  await expect(page.getByText("-40 °F",{exact:true})).toBeVisible();
+  await page.getByRole("button",{name:"容量",exact:true}).click();
+  await page.getByLabel("数值").fill("250");
+  await expect(page.getByText("8.45 US fl oz",{exact:true})).toBeVisible();
+  await expect(page.getByText("1.06 US cup",{exact:true})).toBeVisible();
+  await page.getByRole("button",{name:"收藏",exact:true}).first().click();
+  await expect(page.getByRole("heading",{name:"最近换算",exact:true})).toBeVisible();
+  await expect(page.getByRole("heading",{name:"收藏",exact:true})).toBeVisible();
+  const source="500克牛肉\n250毫升水\n180℃\n小火慢煮";
+  await page.getByLabel("原始菜谱文字").fill(source);
+  await page.getByRole("button",{name:"预览转换",exact:true}).click();
+  await expect(page.getByLabel("原始菜谱文字")).toHaveValue(source);
+  await expect(page.locator(".recipe-conversion-preview")).toContainText("500 g / 17.6 oz 牛肉");
+  await expect(page.locator(".recipe-conversion-preview")).toContainText("小火慢煮");
+  await page.getByRole("button",{name:"撤销",exact:true}).click();
+  await expect(page.locator(".recipe-conversion-preview")).toHaveCount(0);
+  await expect(page.getByLabel("原始菜谱文字")).toHaveValue(source);
+  await page.getByRole("button",{name:"预览转换",exact:true}).click();
+  await page.evaluate(()=>navigator.serviceWorker.ready);
+  await page.context().setOffline(true);
+  await page.reload();
+  await expect(page.locator(".page-context")).toHaveText("厨房工具");
+  await page.getByRole("button",{name:"温度",exact:true}).click();
+  await page.getByLabel("数值").fill("180");
+  await expect(page.getByText("356 °F",{exact:true})).toBeVisible();
+  await page.context().setOffline(false);
+});
+
+test("recipe editor inserts a conversion without replacing existing content",async({page})=>{
+  await page.goto("/");
+  await page.locator(".page-header").getByRole("button",{name:"新增食谱",exact:true}).click();
+  await page.getByRole("button",{name:/手动输入/}).click();
+  await page.getByLabel("名称",{exact:true}).fill("工具插入测试");
+  await page.getByLabel("步骤 1",{exact:true}).fill("保留原步骤");
+  await page.getByRole("button",{name:"保存",exact:true}).click();
+  await page.getByRole("button",{name:"打开厨房工具并插入换算",exact:true}).click();
+  await page.getByLabel("数值").fill("180");
+  await page.getByRole("button",{name:"插入步骤",exact:true}).first().click();
+  await page.getByRole("button",{name:"关闭",exact:true}).click();
+  await expect(page.getByLabel("步骤 1",{exact:true})).toHaveValue("保留原步骤");
+  await expect(page.getByLabel("步骤 2",{exact:true})).toHaveValue("180 °C / 356 °F");
+});

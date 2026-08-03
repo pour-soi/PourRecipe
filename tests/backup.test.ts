@@ -1,0 +1,41 @@
+import "fake-indexeddb/auto";
+import JSZip from "jszip";
+import {beforeEach,describe,expect,it,vi} from "vitest";
+import {db,now,uid} from "../src/data/db";
+import {exportBackup,importBackup,validateBackup} from "../src/services/backup";
+import {parseRecipeText} from "../src/services/recipe-parser";
+import type {CookRecord,OcrRecord,Recipe,StoredImage,Taxonomy} from "../src/data/types";
+
+const recipe=(name:string,rawText:string,deletedAt:string|null=null):Recipe=>({id:uid(),name,status:name==="English"?"untried":"tried",description:"",ingredients:[{id:uid(),originalText:"盐 2 g",normalizedText:"盐 2 g / 0.1 oz",sortOrder:0}],steps:[{id:uid(),originalText:"预热",normalizedText:"预热",sortOrder:0}],categoryIds:[],tagIds:[],sourceType:"screenshot",sourceUrl:"",rawText,normalizedText:rawText,coverImageId:null,createdAt:now(),updatedAt:now(),deletedAt,syncStatus:"local_only",revision:0});
+const image=(recipeId:string,type:StoredImage["type"],note:string):StoredImage=>({id:uid(),recipeId,cookRecordId:null,stepId:null,type,blob:new Blob([`full-${note}`],{type:"image/jpeg"}),mimeType:"image/jpeg",width:2,height:2,thumbnailBlob:new Blob([`thumb-${note}`],{type:"image/jpeg"}),note,sortOrder:1,createdAt:now(),updatedAt:now(),syncStatus:"local_only"});
+
+async function seed(){
+  const recipes=[recipe("中文","原文逐字符"),recipe("English","exact English"),recipe("中英 Mixed","中英 raw",now())];
+  const categories:Taxonomy[]=[{id:uid(),name:"晚餐",sortOrder:0,createdAt:now(),updatedAt:now(),syncStatus:"local_only"}],tags:Taxonomy[]=[{id:uid(),name:"Test",sortOrder:0,createdAt:now(),updatedAt:now(),syncStatus:"local_only"}];
+  recipes[0].categoryIds=[categories[0].id];recipes[0].tagIds=[tags[0].id];
+  const images=[image(recipes[0].id,"cover","封面"),image(recipes[0].id,"source","截图"),image(recipes[1].id,"step","步骤"),image(recipes[1].id,"cook_record","成品一"),image(recipes[1].id,"cook_record","成品二")];
+  recipes[0].coverImageId=images[0].id;
+  const records:CookRecord[]=[0,1,2].map(index=>({id:uid(),recipeId:index?recipes[1].id:recipes[0].id,cookedAt:`2026-07-${20+index}`,actualTemperatureC:null,actualTemperatureF:null,actualDurationMinutes:null,actualServings:"",ingredientChanges:"",stepChanges:"",notes:`记录${index}`,isBestVersion:index===1,coverImageId:index===1?images[3].id:null,createdAt:now(),updatedAt:now(),syncStatus:"local_only"}));
+  images[3].cookRecordId=records[1].id;images[4].cookRecordId=records[1].id;
+  const parserResult=parseRecipeText("家常菜\n鸡腿 500 g\n1、烤 20 分钟");
+  const ocr:OcrRecord={id:uid(),recipeId:recipes[0].id,imageId:images[1].id,language:"chi_sim+eng",status:"completed",progress:1,rawOcrText:"原始 OCR\nLine",editedOcrText:"编辑 OCR\nLine",engine:"tesseract.js",engineVersion:"7.0.0",errorCode:null,parserResult,confirmedParserResult:parserResult,errorMessage:null,createdAt:now(),updatedAt:now(),deletedAt:null,syncStatus:"local_only",revision:0};
+  await Promise.all([db.recipes.bulkAdd(recipes),db.categories.bulkAdd(categories),db.tags.bulkAdd(tags),db.cookRecords.bulkAdd(records),db.images.bulkAdd(images),db.ocrRecords.add(ocr)]);
+  return{recipes,images,ocr,records};
+}
+beforeEach(async()=>{db.close();await db.delete();await db.open()});
+
+describe("full ZIP round trip",()=>{
+  it("restores structured data, OCR, trash, best version and image bytes in a fresh database",async()=>{const seeded=await seed(),first=await exportBackup(),validated=await validateBackup(first.blob);expect(validated.preview.counts).toMatchObject({recipes:3,images:5,ocrRecords:1,cookRecords:3});await db.delete();await db.open();await importBackup(validated,"replace");expect(await db.recipes.count()).toBe(3);expect((await db.recipes.get(seeded.recipes[0].id))?.rawText).toBe("原文逐字符");expect(await db.ocrRecords.get(seeded.ocr.id)).toMatchObject({rawOcrText:"原始 OCR\nLine",editedOcrText:"编辑 OCR\nLine",parserResult:{ingredients:[{normalizedLine:"鸡腿 500 g"}]},confirmedParserResult:{steps:[{normalizedLine:"1、烤 20 分钟"}]}});expect((await db.images.get(seeded.images[0].id))?.blob.size).toBe(seeded.images[0].blob.size);expect((await db.cookRecords.toArray()).filter(x=>x.isBestVersion)).toHaveLength(1);expect((await db.recipes.toArray()).filter(x=>x.deletedAt)).toHaveLength(1);const second=await validateBackup((await exportBackup()).blob);expect(second.preview.counts).toEqual(validated.preview.counts)});
+  it("merge keeps local raw text and creates an explicit conflict for the same UUID",async()=>{const seeded=await seed(),validated=await validateBackup((await exportBackup()).blob);await db.recipes.update(seeded.recipes[0].id,{rawText:"本机优先"});await importBackup(validated,"merge");expect((await db.recipes.get(seeded.recipes[0].id))?.rawText).toBe("本机优先");expect(await db.syncConflicts.get(`recipe:${seeded.recipes[0].id}`)).toBeTruthy()});
+  it("rolls back all writes when import fails",async()=>{await seed();const validated=await validateBackup((await exportBackup()).blob);await db.delete();await db.open();const put=vi.spyOn(db.images,"put").mockRejectedValueOnce(new Error("injected"));await expect(importBackup(validated,"replace")).rejects.toThrow("injected");put.mockRestore();expect(await db.recipes.count()).toBe(0);expect(await db.images.count()).toBe(0)});
+});
+
+async function mutate(mutator:(zip:JSZip)=>Promise<void>|void){const result=await exportBackup(),zip=await JSZip.loadAsync(await result.blob.arrayBuffer());await mutator(zip);return zip.generateAsync({type:"blob"})}
+async function refreshChecksum(zip:JSZip,path:string){const rows=JSON.parse(await zip.file("checksums.json")!.async("string")) as Array<{path:string;size:number;sha256:string}>,bytes=await zip.file(path)!.async("uint8array"),hash=[...new Uint8Array(await crypto.subtle.digest("SHA-256",new Uint8Array(bytes).buffer as ArrayBuffer))].map(x=>x.toString(16).padStart(2,"0")).join(""),row=rows.find(x=>x.path===path)!;row.size=bytes.byteLength;row.sha256=hash;zip.file("checksums.json",JSON.stringify(rows))}
+describe("damaged ZIP rejection",()=>{
+  it("rejects non-ZIP, empty and oversized input",async()=>{await expect(validateBackup(new Blob(["no"]))).rejects.toThrow("有效 ZIP");await expect(validateBackup(new Blob())).rejects.toThrow("为空");await expect(validateBackup({size:513*1024*1024} as Blob)).rejects.toThrow("512 MB")});
+  it("rejects missing manifest and unsupported version",async()=>{await seed();await expect(validateBackup(await mutate(zip=>{zip.remove("manifest.json")}))).rejects.toThrow("manifest");await expect(validateBackup(await mutate(async zip=>{const manifest=JSON.parse(await zip.file("manifest.json")!.async("string"));manifest.backupVersion=99;zip.file("manifest.json",JSON.stringify(manifest))}))).rejects.toThrow("版本")});
+  it("rejects damaged JSON, missing images and checksum errors",async()=>{await seed();await expect(validateBackup(await mutate(zip=>{zip.file("data/recipes.json","{")}))).rejects.toThrow("校验失败");await expect(validateBackup(await mutate(zip=>{const path=Object.keys(zip.files).find(x=>x.startsWith("images/full/")&&!x.endsWith("/"))!;zip.remove(path)}))).rejects.toThrow("缺少");await expect(validateBackup(await mutate(zip=>{const path=Object.keys(zip.files).find(x=>x.startsWith("images/full/")&&!x.endsWith("/"))!;zip.file(path,"tampered")}))).rejects.toThrow("校验失败")});
+  it("rejects traversal, duplicate UUID and invalid relations",async()=>{await seed();await expect(validateBackup(await mutate(zip=>{zip.file("../escape","x")}))).rejects.toThrow("不安全路径");await expect(validateBackup(await mutate(async zip=>{const path="data/recipes.json",rows=JSON.parse(await zip.file(path)!.async("string"));rows.push(rows[0]);zip.file(path,JSON.stringify(rows));await refreshChecksum(zip,path)}))).rejects.toThrow("重复 UUID");await expect(validateBackup(await mutate(async zip=>{const path="data/cook-records.json",rows=JSON.parse(await zip.file(path)!.async("string"));rows[0].recipeId=uid();zip.file(path,JSON.stringify(rows));await refreshChecksum(zip,path)}))).rejects.toThrow("无效关联")});
+  it("rejects a high-ratio ZIP bomb pattern",async()=>{await seed();const result=await exportBackup(),zip=await JSZip.loadAsync(await result.blob.arrayBuffer());zip.file("bomb.bin",new Uint8Array(12*1024*1024));const bomb=await zip.generateAsync({type:"blob",compression:"DEFLATE",compressionOptions:{level:9}});await expect(validateBackup(bomb)).rejects.toThrow("压缩比")});
+});
