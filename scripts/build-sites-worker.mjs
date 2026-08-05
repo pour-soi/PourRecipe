@@ -17,6 +17,10 @@ for(const entry of await readdir("dist")){
   await cp(`dist/${entry}`,`dist/client/${entry}`,{recursive:true});
 }
 await mkdir("dist/.openai",{recursive:true});
-await cp(".openai/hosting.json","dist/.openai/hosting.json");
+try{
+  await cp(".openai/hosting.json","dist/.openai/hosting.json");
+}catch(error){
+  if(error?.code!=="ENOENT")throw error;
+}
 await mkdir("dist/server",{recursive:true});
 await writeFile("dist/server/index.js",output);
