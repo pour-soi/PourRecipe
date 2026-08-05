@@ -1,9 +1,10 @@
 <div align="center">
   <img src="./public/pwa-192.png" width="128" height="128" alt="PourRecipe app icon" />
   <h1>PourRecipe</h1>
-  <p><strong>An iPhone-first, local-first recipe notebook.</strong></p>
-  <p>Capture recipes from screenshots, organize them with on-device OCR, and keep them available offline.</p>
+  <p><strong>Turn screenshots, notes, and cooking memories into a private, structured cookbook.</strong></p>
+  <p>Built for iPhone. Works offline. Sync only when you choose.</p>
   <p>
+    <a href="#product-tour">Product tour</a> ·
     <a href="#getting-started">Getting started</a> ·
     <a href="#privacy-and-data-ownership">Privacy</a>
   </p>
@@ -12,7 +13,38 @@
 > [!NOTE]
 > This repository does not provide a public hosted instance. Run PourRecipe locally or deploy your own copy. Each deployment uses only the Supabase project and credentials configured by its operator.
 
-## Highlights
+## Product tour
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="./docs/screenshots/home-iphone.png" alt="PourRecipe recipe library on iPhone" width="280" />
+    </td>
+    <td align="center" width="50%">
+      <img src="./docs/screenshots/recipe-editor-iphone.png" alt="Structured recipe ingredients and steps" width="280" />
+    </td>
+  </tr>
+  <tr>
+    <td align="center"><strong>Your personal recipe library</strong><br /><sub>Search, filter, and organize recipes without turning the app into a commercial food feed.</sub></td>
+    <td align="center"><strong>Ingredients and steps that stay readable</strong><br /><sub>Keep the source text while viewing deterministic unit enhancements when cooking.</sub></td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src="./docs/screenshots/new-recipe-iphone.png" alt="PourRecipe capture options" width="280" />
+    </td>
+    <td align="center" width="50%">
+      <img src="./docs/screenshots/kitchen-tools-iphone.png" alt="Offline recipe conversion tools" width="280" />
+    </td>
+  </tr>
+  <tr>
+    <td align="center"><strong>Capture recipes your way</strong><br /><sub>Import screenshots, paste text, enter a recipe manually, or start from a photo.</sub></td>
+    <td align="center"><strong>Cook across measurement systems</strong><br /><sub>Use offline temperature, weight, volume, length, butter, baking, and recipe-reading conversions.</sub></td>
+  </tr>
+</table>
+
+<p align="center"><sub>Screenshots contain sample recipes created only for this README.</sub></p>
+
+## Built for real recipes
 
 - **Local-first by design** — recipes, images, OCR records, categories, tags, cooking logs, conflicts, and pending changes are stored in IndexedDB before any sync occurs.
 - **Flexible recipe capture** — start with screenshots, pasted text, manual entry, or a photo.
