@@ -160,6 +160,12 @@ docs/                 Architecture, privacy, backup, OCR, and testing notes
 
 **Technology:** React · TypeScript · Vite · Dexie · IndexedDB · Tesseract.js · Supabase · Vitest · Playwright · Workbox
 
+## License
+
+PourRecipe is licensed under the [GNU Affero General Public License v3.0](./LICENSE) (`AGPL-3.0-only`). If you modify PourRecipe and make it available to users over a network, you must also make the corresponding source code available under the same license.
+
+The license covers the source code in this repository. It does not grant access to the maintainer's hosted site, accounts, credentials, cloud resources, or user data.
+
 ---
 
 PourRecipe is under active development. Review the documentation and security settings before operating a public deployment.
