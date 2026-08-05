@@ -4,14 +4,13 @@
   <p><strong>An iPhone-first, local-first recipe notebook.</strong></p>
   <p>Capture recipes from screenshots, organize them with on-device OCR, and keep them available offline.</p>
   <p>
-    <a href="https://pourrecipe.pages.dev">Website</a> ·
     <a href="#getting-started">Getting started</a> ·
     <a href="#privacy-and-data-ownership">Privacy</a>
   </p>
 </div>
 
 > [!NOTE]
-> The hosted PourRecipe instance is private and does not allow public registration. The source code can be run locally or deployed to your own infrastructure.
+> This repository does not provide a public hosted instance. Run PourRecipe locally or deploy your own copy. Each deployment uses only the Supabase project and credentials configured by its operator.
 
 ## Highlights
 
@@ -74,6 +73,8 @@ Then configure only the public frontend values:
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-publishable-or-anon-key
 ```
+
+Cloning or deploying PourRecipe does not share the maintainer's database. Your deployment connects only to the Supabase project identified by your own environment values.
 
 Apply the versioned migrations from [`supabase/migrations`](./supabase/migrations) and follow [`docs/SUPABASE_SETUP.md`](./docs/SUPABASE_SETUP.md). Never place a Service Role key, database password, or management token in frontend environment variables.
 
