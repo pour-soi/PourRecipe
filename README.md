@@ -1,17 +1,18 @@
 <div align="center">
-  <img src="./public/pwa-192.png" width="128" height="128" alt="PourRecipe app icon" />
+  <img src="./public/pwa-192.png" width="112" height="112" alt="PourRecipe app icon" />
   <h1>PourRecipe</h1>
-  <p><strong>Turn screenshots, notes, and cooking memories into a private, structured cookbook.</strong></p>
-  <p>Built for iPhone. Works offline. Sync only when you choose.</p>
+  <p><strong>A private, local-first recipe notebook designed for iPhone.</strong></p>
+  <p>Capture recipes from screenshots or text, review every extraction, cook offline, and sync on your terms.</p>
   <p>
     <a href="#product-tour">Product tour</a> ·
-    <a href="#getting-started">Getting started</a> ·
-    <a href="#privacy-and-data-ownership">Privacy</a>
+    <a href="#core-capabilities">Capabilities</a> ·
+    <a href="#quick-start">Quick start</a> ·
+    <a href="#privacy-by-design">Privacy</a>
   </p>
 </div>
 
-> [!NOTE]
-> This repository does not provide a public hosted instance. Run PourRecipe locally or deploy your own copy. Each deployment uses only the Supabase project and credentials configured by its operator.
+> [!IMPORTANT]
+> PourRecipe has no public hosted instance. Run it locally or deploy your own copy. A deployment connects only to the Supabase project and credentials supplied by its operator—never to the maintainer's recipes or database.
 
 ## Product tour
 
@@ -21,59 +22,57 @@
       <img src="./docs/screenshots/home-iphone.png" alt="PourRecipe recipe library on iPhone" width="280" />
     </td>
     <td align="center" width="50%">
-      <img src="./docs/screenshots/recipe-editor-iphone.png" alt="Structured recipe ingredients and steps" width="280" />
+      <img src="./docs/screenshots/new-recipe-iphone.png" alt="PourRecipe recipe capture options" width="280" />
     </td>
   </tr>
   <tr>
-    <td align="center"><strong>Your personal recipe library</strong><br /><sub>Search, filter, and organize recipes without turning the app into a commercial food feed.</sub></td>
-    <td align="center"><strong>Ingredients and steps that stay readable</strong><br /><sub>Keep the source text while viewing deterministic unit enhancements when cooking.</sub></td>
+    <td align="center"><strong>Personal recipe library</strong><br /><sub>Search, filter, and organize without a commercial food-feed interface.</sub></td>
+    <td align="center"><strong>Task-first capture</strong><br /><sub>Start with screenshots, pasted text, manual entry, or a photo.</sub></td>
   </tr>
   <tr>
     <td align="center" width="50%">
-      <img src="./docs/screenshots/new-recipe-iphone.png" alt="PourRecipe capture options" width="280" />
+      <img src="./docs/screenshots/recipe-editor-iphone.png" alt="Structured recipe ingredients and steps" width="280" />
     </td>
     <td align="center" width="50%">
       <img src="./docs/screenshots/kitchen-tools-iphone.png" alt="Offline recipe conversion tools" width="280" />
     </td>
   </tr>
   <tr>
-    <td align="center"><strong>Capture recipes your way</strong><br /><sub>Import screenshots, paste text, enter a recipe manually, or start from a photo.</sub></td>
-    <td align="center"><strong>Cook across measurement systems</strong><br /><sub>Use offline temperature, weight, volume, length, butter, baking, and recipe-reading conversions.</sub></td>
+    <td align="center"><strong>Reviewable structure</strong><br /><sub>Keep source text separate while refining ingredients and steps.</sub></td>
+    <td align="center"><strong>Offline kitchen tools</strong><br /><sub>Read Chinese and US recipes with deterministic unit conversions.</sub></td>
   </tr>
 </table>
 
-<p align="center"><sub>Screenshots contain sample recipes created only for this README.</sub></p>
+<p align="center"><sub>All screenshots use synthetic sample recipes created for this repository.</sub></p>
 
-## Built for real recipes
+## Core capabilities
 
-- **Local-first by design** — recipes, images, OCR records, categories, tags, cooking logs, conflicts, and pending changes are stored in IndexedDB before any sync occurs.
-- **Flexible recipe capture** — start with screenshots, pasted text, manual entry, or a photo.
-- **Multi-screenshot import** — import, reorder, review, and process up to 30 screenshots in one recipe.
-- **On-device OCR** — Tesseract.js loads only when requested and processes screenshots sequentially to reduce memory pressure on iPhone.
-- **Optional AI structuring** — after reviewing OCR text, the user may explicitly ask AI to suggest a title, ingredients, steps, and uncertain content. AI never replaces the original OCR or confirmed recipe content automatically.
-- **Unified image management** — manage covers, source screenshots, preparation images, ingredient images, and step images from one compact interface.
-- **Offline kitchen tools** — deterministic temperature, weight, volume, length, butter, baking, and China ↔ US recipe conversions work without a network connection.
-- **Optional private sync** — Supabase Auth, Postgres with RLS, and private Storage support cross-device synchronization without making local editing dependent on the cloud.
-- **Portable backups** — full ZIP export and restore preserves structured data, images, thumbnails, OCR text, and integrity checks.
-- **Installable PWA** — designed for Safari “Add to Home Screen,” standalone mode, safe areas, and offline launch.
+| | Capability | What it means |
+| --- | --- | --- |
+| **Capture** | Multi-screenshot import | Import, reorder, and process up to 30 screenshots while preserving image-to-OCR traceability. |
+| **Understand** | Local OCR with optional AI | Tesseract.js runs in the browser. AI structuring runs only when explicitly requested and returns a reviewable draft. |
+| **Organize** | Structured recipe library | Manage ingredients, steps, images, categories, tags, cooking records, and best versions. |
+| **Cook** | Deterministic kitchen tools | Convert temperature, weight, volume, length, butter, and baking references fully offline. |
+| **Preserve** | Local-first storage and ZIP backup | IndexedDB remains the primary store; full ZIP export preserves structured data and images. |
+| **Sync** | Optional private Supabase sync | Authentication, Row Level Security, private Storage, conflicts, and tombstones support controlled cross-device use. |
 
-## How it works
+## A review-first workflow
 
 ```mermaid
 flowchart LR
-  A["Screenshots, text, or manual entry"] --> B["IndexedDB"]
-  B --> C["Local Tesseract OCR"]
+  A["Screenshots, text, or manual entry"] --> B["Local IndexedDB"]
+  B --> C["On-device OCR"]
   C --> D["User review"]
   D --> E["Optional AI draft"]
   D --> F["Confirmed recipe"]
   E --> F
-  F -. "optional sync" .-> G["Supabase"]
-  F --> H["ZIP backup"]
+  F -. "optional sync" .-> G["Private Supabase project"]
+  F --> H["Portable ZIP backup"]
 ```
 
-The original screenshots, raw OCR text, edited OCR text, AI draft, and final user-confirmed result remain separate. A failed OCR, AI, or sync request does not remove the local recipe data.
+Original screenshots, raw OCR text, edited OCR text, AI drafts, and confirmed recipe content remain separate. OCR, AI, and sync failures do not remove locally stored recipe data.
 
-## Getting started
+## Quick start
 
 ### Requirements
 
@@ -89,9 +88,10 @@ pnpm install
 pnpm dev
 ```
 
-PourRecipe works in local-only mode without an environment file. Recipes, images, OCR, categories, tags, cooking records, kitchen tools, and ZIP backups remain available.
+No environment file is required for local-only use. Recipe editing, images, OCR, categories, tags, cooking records, kitchen tools, and ZIP backups remain available without Supabase or OpenAI.
 
-### Optional Supabase configuration
+<details>
+<summary><strong>Configure optional private sync</strong></summary>
 
 Copy the placeholder environment file:
 
@@ -99,31 +99,45 @@ Copy the placeholder environment file:
 cp .env.example .env.local
 ```
 
-Then configure only the public frontend values:
+Add only the public frontend values from your own Supabase project:
 
 ```dotenv
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-publishable-or-anon-key
 ```
 
-Cloning or deploying PourRecipe does not share the maintainer's database. Your deployment connects only to the Supabase project identified by your own environment values.
+Apply the versioned migrations in [`supabase/migrations`](./supabase/migrations), then follow [`docs/SUPABASE_SETUP.md`](./docs/SUPABASE_SETUP.md). Never expose a Service Role key, database password, or management token to the frontend.
 
-Apply the versioned migrations from [`supabase/migrations`](./supabase/migrations) and follow [`docs/SUPABASE_SETUP.md`](./docs/SUPABASE_SETUP.md). Never place a Service Role key, database password, or management token in frontend environment variables.
+</details>
 
-### Optional AI structuring
+<details>
+<summary><strong>Configure optional AI structuring</strong></summary>
 
-AI structuring is not required for recipe creation. When enabled:
+AI structuring is an enhancement, not a requirement:
 
-1. OCR still runs locally in the browser.
-2. The user reviews or edits the OCR text.
-3. The user explicitly starts “Smart Organize.”
-4. Only the confirmed text is sent to the Supabase Edge Function.
+1. OCR runs locally in the browser.
+2. The user reviews or edits the extracted text.
+3. The user explicitly starts Smart Organize.
+4. The reviewed text is sent to the Supabase Edge Function.
 5. The Edge Function calls the OpenAI Responses API and returns a structured draft.
-6. The user reviews the draft before accepting any changes.
+6. Nothing changes in the recipe until the user accepts the draft.
 
-Store `OPENAI_API_KEY` only as a Supabase Edge Function secret. It must never appear in the browser bundle, Git history, logs, or `.env.local` values committed to the repository.
+Store `OPENAI_API_KEY` only as a Supabase Edge Function secret. It must never appear in browser code, committed environment files, or client logs.
 
-## Development commands
+</details>
+
+## Privacy by design
+
+| Boundary | Guarantee |
+| --- | --- |
+| **Local data** | Recipes and pending changes are written to IndexedDB first. Clearing browser site data can remove information that has not been synced or exported. |
+| **OCR** | Screenshot pixels are processed by the in-page Tesseract worker; local OCR does not require uploading the image. |
+| **AI** | Requests require an explicit action and send reviewed text by default. The OpenAI API key stays in the Edge Function. |
+| **Cloud sync** | Sync is optional. RLS protects database rows and private Storage uses user-scoped paths. |
+| **Backups** | ZIP export creates an account-independent copy controlled by the user. |
+| **This repository** | Source code, migrations, and placeholders are public. User recipes, cloud resources, credentials, and the maintainer's hosted site are not included. |
+
+## Development
 
 | Command | Purpose |
 | --- | --- |
@@ -133,19 +147,7 @@ Store `OPENAI_API_KEY` only as a Supabase Edge Function secret. It must never ap
 | `pnpm build` | Type-check and create the production PWA build |
 | `pnpm preview` | Preview the production build locally |
 
-## Privacy and data ownership
-
-- Local OCR sends image pixels only to the in-page Tesseract worker.
-- AI requests happen only after an explicit user action and use reviewed text by default.
-- The OpenAI API key remains server-side in the Supabase Edge Function.
-- Supabase rows are protected by Row Level Security and private images use user-scoped paths.
-- Local editing continues when Supabase, OpenAI, or the network is unavailable.
-- ZIP backup provides an account-independent copy controlled by the user.
-- Clearing browser site data can remove local-only information that has not been synced or exported.
-
-See [`docs/`](./docs) for the local-first model, sync behavior, conflict handling, OCR limitations, kitchen conversion policy, and ZIP backup format.
-
-## Project structure
+### Project structure
 
 ```text
 src/                  React UI, IndexedDB data layer, and browser services
@@ -156,10 +158,14 @@ tests/                Unit, integration, and Playwright tests
 docs/                 Architecture, privacy, backup, OCR, and testing notes
 ```
 
-## Technology
+**Technology:** React · TypeScript · Vite · Dexie · IndexedDB · Tesseract.js · Supabase · Vitest · Playwright · Workbox
 
-React · TypeScript · Vite · Dexie · IndexedDB · Tesseract.js · Supabase · Vitest · Playwright · Workbox
+## License
+
+PourRecipe is licensed under the [GNU Affero General Public License v3.0](./LICENSE) (`AGPL-3.0-only`). If you modify PourRecipe and make it available to users over a network, you must also make the corresponding source code available under the same license.
+
+The license covers the source code in this repository. It does not grant access to the maintainer's hosted site, accounts, credentials, cloud resources, or user data.
 
 ---
 
-PourRecipe is under active development. The repository contains source code and configuration placeholders only; it does not include hosted user data, private cloud resources, or secrets.
+PourRecipe is under active development. Review the documentation and security settings before operating a public deployment.
